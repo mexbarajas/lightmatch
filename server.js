@@ -1,9 +1,12 @@
 /*
   LightMatch — Server
   Serves the React app and proxies Anthropic API calls.
-  API key is read from the ANTHROPIC_API_KEY environment variable.
-  In CodeSandbox: add it in Sandbox > Settings > Environment Variables
+  API key is loaded from the .env file OR from environment variables.
+  In CodeSandbox: just edit the .env file in the file tree on the left.
 */
+
+// Load .env file automatically if it exists
+try { require("dotenv").config(); } catch(e) {}
 
 const express = require("express");
 const cors    = require("cors");
@@ -33,7 +36,7 @@ app.get("/health", (req, res) => {
     apiKeyConfigured: !!(key && key.startsWith("sk-")),
     message: (key && key.startsWith("sk-"))
       ? "Ready"
-      : "Add ANTHROPIC_API_KEY in CodeSandbox > Settings > Environment Variables"
+      : "Add your key to the .env file: ANTHROPIC_API_KEY=sk-ant-your-key-here"
   });
 });
 
@@ -44,7 +47,7 @@ app.post("/api/messages", async (req, res) => {
   if (!apiKey || !apiKey.startsWith("sk-")) {
     return res.status(500).json({
       error: {
-        message: "ANTHROPIC_API_KEY not configured. In CodeSandbox: open Settings → Environment Variables → add ANTHROPIC_API_KEY = sk-ant-..."
+        message: "ANTHROPIC_API_KEY not set. Open the .env file in the file tree and add: ANTHROPIC_API_KEY=sk-ant-your-key-here"
       }
     });
   }

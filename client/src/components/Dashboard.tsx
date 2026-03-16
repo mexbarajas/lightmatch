@@ -72,22 +72,22 @@ export function Dashboard({ setView }: { setView: (v: AppView) => void }) {
       <div className="quick-actions">
         <button className="qa-btn" onClick={() => setView('match')}>
           <span className="qa-icon">⇄</span>
-          <span className="qa-label">Match a Competitor Part</span>
+          <span className="qa-label">Match a Single Part</span>
           <span className="qa-sub">Enter catalog # → get Cooper equivalent</span>
         </button>
-        <button className="qa-btn" onClick={() => setView('match')}>
-          <span className="qa-icon">📄</span>
-          <span className="qa-label">Upload Spec Sheet / Excel</span>
-          <span className="qa-sub">Bulk match from file upload</span>
+        <button className="qa-btn" onClick={() => setView('bom')}>
+          <span className="qa-icon">⊞</span>
+          <span className="qa-label">Import BOM / Fixture Schedule</span>
+          <span className="qa-sub">Bulk match an entire fixture list at once</span>
         </button>
         <button className="qa-btn" onClick={() => setView('knowledge')}>
           <span className="qa-icon">◈</span>
-          <span className="qa-label">Browse Knowledge Base</span>
-          <span className="qa-sub">View & edit all indexed specs</span>
+          <span className="qa-label">Knowledge Base</span>
+          <span className="qa-sub">Add spec sheets · browse all products</span>
         </button>
         <button className="qa-btn" onClick={() => setView('quote')}>
           <span className="qa-icon">≡</span>
-          <span className="qa-label">Open Quote Builder</span>
+          <span className="qa-label">Quote Builder</span>
           <span className="qa-sub">Build & export Cooper quote</span>
         </button>
       </div>

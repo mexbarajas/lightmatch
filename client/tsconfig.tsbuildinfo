@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/components/Dashboard.tsx","./src/components/KnowledgeBase.tsx","./src/components/MatchEngine.tsx","./src/components/QuoteBuilder.tsx","./src/lib/database.ts"],"version":"5.9.3"}
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/BOMImporter.tsx","./src/components/CatalogDecoder.tsx","./src/components/Dashboard.tsx","./src/components/KnowledgeBase.tsx","./src/components/MatchEngine.tsx","./src/components/QuoteBuilder.tsx","./src/lib/database.ts"],"version":"5.9.3"}

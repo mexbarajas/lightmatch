@@ -3,9 +3,11 @@ import { Dashboard } from '@/components/Dashboard'
 import { MatchEngine } from '@/components/MatchEngine'
 import { KnowledgeBase } from '@/components/KnowledgeBase'
 import { QuoteBuilder } from '@/components/QuoteBuilder'
+import { BOMImporter } from '@/components/BOMImporter'
+import { CatalogDecoder } from '@/components/CatalogDecoder'
 import { db } from '@/lib/database'
 
-export type AppView = 'dashboard' | 'match' | 'knowledge' | 'quote'
+export type AppView = 'dashboard' | 'match' | 'bom' | 'decode' | 'knowledge' | 'quote'
 
 function ProxyBanner() {
   const [status, setStatus] = useState<'checking'|'ok'|'offline'>('checking')
@@ -35,6 +37,8 @@ function Sidebar({ view, setView, quoteCount }: { view: AppView, setView: (v: Ap
   const nav = [
     { id: 'dashboard', label: 'Dashboard', icon: '⬡' },
     { id: 'match', label: 'Match & Convert', icon: '⇄' },
+    { id: 'bom', label: 'BOM Importer', icon: '⊞' },
+    { id: 'decode', label: 'Catalog Decoder', icon: '{ }' },
     { id: 'knowledge', label: 'Knowledge Base', icon: '◈' },
     { id: 'quote', label: 'Quote Builder', icon: '≡', badge: quoteCount || null },
   ]
@@ -84,6 +88,8 @@ export default function App() {
       <main className="main-content">
         {view === 'dashboard' && <Dashboard setView={setView} />}
         {view === 'match' && <MatchEngine setView={setView} quoteItems={quoteItems} setQuoteItems={setQuoteItems} />}
+        {view === 'bom' && <BOMImporter setView={setView} quoteItems={quoteItems} setQuoteItems={setQuoteItems} />}
+        {view === 'decode' && <CatalogDecoder />}
         {view === 'knowledge' && <KnowledgeBase />}
         {view === 'quote' && <QuoteBuilder quoteItems={quoteItems} setQuoteItems={setQuoteItems} />}
       </main>
