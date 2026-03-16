@@ -893,6 +893,153 @@ const seedBrands: Brand[] = [
   { id: 'keystone', name: 'Keystone Technologies', parent: 'Keystone Technologies', color: '#7e3af2', products: ['kt-2x2'] },
 ]
 
+
+// ─── Knowledge Store ──────────────────────────────────────────────────────────
+// Every spec sheet, document, and product addition is indexed here.
+// This store grows with usage and provides context to all AI calls.
+
+export interface SpecSheetRecord {
+  id: string
+  addedAt: string           // ISO date
+  fileName: string
+  brand: string
+  series: string
+  fixtureType: string       // "LED Panel", "Linear", "Downlight", etc.
+  rawExtractedText: string  // full text Claude extracted from the PDF
+  catalogGrammar: CatalogGrammarRule[]
+  fieldDefinitions: FieldDefinition[]
+  productIds: string[]      // product IDs saved from this sheet
+  notes: string
+}
+
+export interface CatalogGrammarRule {
+  position: number
+  fieldName: string
+  codes: Record<string, string>  // code -> meaning
+  format: string                 // e.g. "2-digit + letter", "alphanumeric"
+  required: boolean
+  notes: string
+}
+
+export interface FieldDefinition {
+  field: string        // e.g. "Lumen Output", "CRI", "Voltage"
+  unit: string         // e.g. "lm", "CRI value", "V"
+  validValues: string  // e.g. "80 or 90", "3000K-5000K", "120-277V"
+  notes: string
+}
+
+export interface LearningContext {
+  totalDocuments: number
+  totalProducts: number
+  brands: string[]
+  seriesList: string[]
+  fixtureTypes: string[]
+  catalogGrammars: Record<string, CatalogGrammarRule[]>  // series -> grammar
+  recentlyAdded: string[]  // last 5 product IDs
+  systemPromptContext: string  // pre-built context string for Claude API calls
+}
+
+class KnowledgeStore {
+  private records: SpecSheetRecord[] = []
+
+  // Add a complete spec sheet record after extraction + save
+  addRecord(record: SpecSheetRecord): void {
+    this.records = this.records.filter(r => r.id !== record.id)
+    this.records.push(record)
+  }
+
+  // Get all records
+  getAll(): SpecSheetRecord[] { return this.records }
+
+  // Get records by brand
+  getByBrand(brand: string): SpecSheetRecord[] {
+    return this.records.filter(r => r.brand.toLowerCase() === brand.toLowerCase())
+  }
+
+  // Get records by series
+  getBySeries(series: string): SpecSheetRecord[] {
+    return this.records.filter(r => r.series.toLowerCase().includes(series.toLowerCase()))
+  }
+
+  // Get learned catalog grammar for a specific series
+  getGrammar(series: string): CatalogGrammarRule[] {
+    const rec = this.records.find(r => r.series.toLowerCase().includes(series.toLowerCase()))
+    return rec?.catalogGrammar || []
+  }
+
+  // Build the full context string that gets prepended to every Claude API call
+  // This is the core of the learning — AI calls become smarter with each doc added
+  buildSystemContext(): string {
+    if (this.records.length === 0) return ""
+
+    const brands = [...new Set(this.records.map(r => r.brand).filter(Boolean))]
+    const series = [...new Set(this.records.map(r => r.series).filter(Boolean))]
+    const types  = [...new Set(this.records.map(r => r.fixtureType).filter(Boolean))]
+
+    const grammarSummaries = this.records
+      .filter(r => r.catalogGrammar.length > 0)
+      .map(r => {
+        const rules = r.catalogGrammar
+          .map(g => "  Position " + g.position + " (" + g.fieldName + "): " + Object.entries(g.codes).slice(0, 4).map(([k,v]) => k + "=" + v).join(", "))
+          .join("\n")
+        return r.brand + " " + r.series + " catalog grammar:\n" + rules
+      })
+      .join("\n\n")
+
+    const fieldSummaries = this.records
+      .filter(r => r.fieldDefinitions.length > 0)
+      .flatMap(r => r.fieldDefinitions)
+      .map(f => "  " + f.field + " [" + f.unit + "]: " + f.validValues)
+      .join("\n")
+
+    let ctx = "=== KNOWLEDGE BASE CONTEXT ===\n"
+    ctx += "Indexed brands: " + brands.join(", ") + "\n"
+    ctx += "Indexed series: " + series.join(", ") + "\n"
+    ctx += "Fixture types: " + types.join(", ") + "\n"
+    ctx += "Total spec sheets indexed: " + this.records.length + "\n\n"
+
+    if (grammarSummaries) {
+      ctx += "CATALOG NUMBER GRAMMARS LEARNED FROM SPEC SHEETS:\n" + grammarSummaries + "\n\n"
+    }
+
+    if (fieldSummaries) {
+      ctx += "FIELD DEFINITIONS LEARNED:\n" + fieldSummaries + "\n\n"
+    }
+
+    ctx += "Use the above context when:\n"
+    ctx += "- Parsing new catalog numbers from the same brands/series\n"
+    ctx += "- Extracting fields from spec sheets of similar products\n"
+    ctx += "- Matching competitor products to Cooper equivalents\n"
+    ctx += "=== END KNOWLEDGE BASE CONTEXT ===\n"
+
+    return ctx
+  }
+
+    // Get stats for display
+  getStats() {
+    return {
+      totalDocuments: this.records.length,
+      totalBrands: new Set(this.records.map(r => r.brand)).size,
+      totalSeries: new Set(this.records.map(r => r.series)).size,
+      recentDocs: this.records.slice(-5).reverse().map(r => ({
+        id: r.id,
+        fileName: r.fileName,
+        brand: r.brand,
+        series: r.series,
+        addedAt: r.addedAt,
+        productCount: r.productIds.length
+      }))
+    }
+  }
+
+  // Clear all learned data (reset)
+  clear(): void { this.records = [] }
+}
+
+// Singleton exported for use across the app
+export const knowledgeStore = new KnowledgeStore()
+
+
 // ─── Database Class ───────────────────────────────────────────────────────────
 
 

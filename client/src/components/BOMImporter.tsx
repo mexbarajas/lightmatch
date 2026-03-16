@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react"
-import { db } from "@/lib/database"
+import { db, knowledgeStore } from "@/lib/database"
 import type { AppView } from "@/App"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -146,7 +146,9 @@ export function BOMImporter({ setView, quoteItems, setQuoteItems }: {
     }
   }
 
-  const buildParseSystemPrompt = () => `You are a commercial lighting fixture schedule parser.
+  const buildParseSystemPrompt = () => {
+    const learnedContext = knowledgeStore.buildSystemContext()
+    return learnedContext + `You are a commercial lighting fixture schedule parser.
 Parse the uploaded fixture schedule / Bill of Materials and extract each fixture line item.
 Ignore header rows, total rows, notes rows, and blank rows.
 Return ONLY a valid JSON array — no markdown, no explanation.
@@ -170,6 +172,7 @@ Each item in the array:
 
 Skip rows that are clearly not fixtures (subtotals, section headers, blank lines).
 Be generous — if a row looks like it could be a fixture, include it.`
+  }
 
   const processParsedResponse = (data: any, fname: string) => {
     try {

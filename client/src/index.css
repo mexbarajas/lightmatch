@@ -790,3 +790,28 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
 .cd-history-chip:hover { border-color: var(--navy); background: var(--navy-light); }
 .cd-history-cat { font-family: 'Source Code Pro', monospace; font-size: 12px; font-weight: 500; color: var(--navy); }
 .cd-history-meta { font-size: 11px; color: var(--text3); margin-left: auto; }
+
+/* ── Learning View ─── */
+.learn-stats-row { display: grid; grid-template-columns: repeat(3, auto) 1fr; gap: 12px; margin-bottom: 20px; align-items: stretch; }
+.learn-stat { background: var(--bg2); border: 1px solid var(--border); border-top: 3px solid var(--navy); border-radius: var(--radius); padding: 14px 20px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); min-width: 120px; }
+.learn-stat-num { font-family: 'Barlow', sans-serif; font-size: 30px; font-weight: 800; color: var(--navy); line-height: 1; }
+.learn-stat-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.learn-stat-wide { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow); }
+.learn-context-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.learn-context-pill { font-size: 12px; padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 500; line-height: 1.4; }
+.learn-context-pill.active { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+.learn-context-pill.inactive { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+
+/* Grammar table */
+.learn-summary-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 14px; }
+.learn-summary-text { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.learn-grammar-table { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-top: 8px; }
+.learn-grammar-row { display: flex; align-items: flex-start; gap: 0; border-bottom: 1px solid var(--border); }
+.learn-grammar-row:last-child { border-bottom: none; }
+.learn-grammar-row:hover { background: var(--navy-light); }
+.learn-grammar-pos { width: 32px; background: var(--navy); color: #fff; font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; min-height: 36px; flex-shrink: 0; }
+.learn-grammar-field { font-size: 11px; font-weight: 700; color: var(--navy); padding: 8px 10px; min-width: 140px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; align-items: center; }
+.learn-grammar-codes { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 10px; align-items: center; }
+.learn-code-chip { font-size: 10px; background: var(--bg3); border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; color: var(--text2); }
+.learn-code-chip strong { color: var(--navy); }
+.learn-code-more { font-size: 10px; color: var(--text3); font-style: italic; }

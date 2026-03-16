@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react"
-import { db } from "@/lib/database"
+import { db, knowledgeStore } from "@/lib/database"
+import type { SpecSheetRecord, CatalogGrammarRule, FieldDefinition } from "@/lib/database"
 import type { Product } from "@/lib/database"
 
 // ── Brand color map ──────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ export function KnowledgeBase() {
   const [selected, setSelected]       = useState<Product | null>(null)
   const [showWizard, setShowWizard]   = useState(false)
   const [refreshKey, setRefreshKey]   = useState(0)
+  const [activeTab, setActiveTab]     = useState<"products" | "learning">("products")
 
   const brands     = db.getBrands()
   const allProducts = db.getAllProducts()
@@ -59,6 +61,20 @@ export function KnowledgeBase() {
           + Add via Spec Sheet
         </button>
       </div>
+
+      {/* Tab bar */}
+      <div className="mode-tabs" style={{ marginBottom: 20 }}>
+        <button className={`mode-tab ${activeTab === "products" ? "active" : ""}`} onClick={() => setActiveTab("products")}>
+          Products ({allProducts.length})
+        </button>
+        <button className={`mode-tab ${activeTab === "learning" ? "active" : ""}`} onClick={() => setActiveTab("learning")}>
+          Learned Documents ({knowledgeStore.getStats().totalDocuments})
+        </button>
+      </div>
+
+      {activeTab === "learning" && <LearningView />}
+
+      {activeTab === "products" && <>
 
       {/* Filters */}
       <div className="filter-bar">
@@ -119,6 +135,143 @@ export function KnowledgeBase() {
           )}
         </div>
       </div>
+      </> }
+    </div>
+  )
+}
+
+// ── Learning View ─────────────────────────────────────────────────────────────
+function LearningView() {
+  const stats = knowledgeStore.getStats()
+  const records = knowledgeStore.getAll()
+  const [selected, setSelected] = useState<string | null>(null)
+  const selectedRecord = records.find(r => r.id === selected) || null
+
+  return (
+    <div>
+      {/* Stats */}
+      <div className="learn-stats-row">
+        <div className="learn-stat">
+          <div className="learn-stat-num">{stats.totalDocuments}</div>
+          <div className="learn-stat-label">Documents Indexed</div>
+        </div>
+        <div className="learn-stat">
+          <div className="learn-stat-num">{stats.totalBrands}</div>
+          <div className="learn-stat-label">Brands Learned</div>
+        </div>
+        <div className="learn-stat">
+          <div className="learn-stat-num">{stats.totalSeries}</div>
+          <div className="learn-stat-label">Product Series</div>
+        </div>
+        <div className="learn-stat-wide">
+          <div className="learn-context-label">AI Context Status</div>
+          <div className={`learn-context-pill ${stats.totalDocuments > 0 ? "active" : "inactive"}`}>
+            {stats.totalDocuments > 0
+              ? stats.totalDocuments + " doc" + (stats.totalDocuments !== 1 ? "s" : "") + " feeding AI context — all future extractions and BOM parsing use this knowledge"
+              : "No documents indexed yet — add spec sheets to start training the AI"}
+          </div>
+        </div>
+      </div>
+
+      {records.length === 0 ? (
+        <div className="results-empty" style={{ marginTop: 32 }}>
+          <div className="empty-icon">◈</div>
+          <div className="empty-label">No documents in the knowledge store yet</div>
+          <div className="empty-sub">Every spec sheet you upload via + Add via Spec Sheet is indexed here automatically. The AI gets smarter with each one — catalog grammars, field definitions, and product relationships all accumulate.</div>
+        </div>
+      ) : (
+        <div className="kb-layout">
+          <div>
+            <div className="kb-count">{records.length} indexed document{records.length !== 1 ? "s" : ""}</div>
+            <div className="kb-list">
+              {records.map(r => (
+                <div key={r.id} className={`kb-row ${selected === r.id ? "selected" : ""}`} onClick={() => setSelected(r.id)}>
+                  <div className="kb-brand-dot" style={{ background: "#003087", borderRadius: 2 }} />
+                  <div className="kb-row-body">
+                    <div className="kb-catalog">{r.fileName}</div>
+                    <div className="kb-meta">{r.brand} · {r.series} · {r.fixtureType} · {new Date(r.addedAt).toLocaleDateString()}</div>
+                  </div>
+                  <div className="kb-dlc-badge dlc-standard">
+                    {r.catalogGrammar.length > 0 ? r.catalogGrammar.length + " rules" : r.productIds.length + " prod"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="kb-detail">
+            {selectedRecord ? (
+              <div className="detail-panel">
+                <div className="detail-header">
+                  <div>
+                    <div className="detail-catalog">{selectedRecord.fileName}</div>
+                    <div className="detail-sub">{selectedRecord.brand} · {selectedRecord.series} · added {new Date(selectedRecord.addedAt).toLocaleDateString()}</div>
+                  </div>
+                </div>
+
+                {selectedRecord.rawExtractedText && (
+                  <div className="learn-summary-box">
+                    <div className="detail-section-title">Product Summary</div>
+                    <div className="learn-summary-text">{selectedRecord.rawExtractedText}</div>
+                  </div>
+                )}
+
+                {selectedRecord.catalogGrammar.length > 0 && (
+                  <div className="detail-section">
+                    <div className="detail-section-title">Catalog Grammar Learned ({selectedRecord.catalogGrammar.length} positions)</div>
+                    <div className="learn-grammar-table">
+                      {selectedRecord.catalogGrammar.map((g, i) => (
+                        <div key={i} className="learn-grammar-row">
+                          <div className="learn-grammar-pos">{g.position}</div>
+                          <div className="learn-grammar-field">{g.fieldName}</div>
+                          <div className="learn-grammar-codes">
+                            {Object.entries(g.codes).slice(0, 6).map(([k, v]) => (
+                              <span key={k} className="learn-code-chip"><strong>{k}</strong> = {v}</span>
+                            ))}
+                            {Object.keys(g.codes).length > 6 && <span className="learn-code-more">+{Object.keys(g.codes).length - 6} more</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedRecord.fieldDefinitions.length > 0 && (
+                  <div className="detail-section">
+                    <div className="detail-section-title">Field Definitions Learned ({selectedRecord.fieldDefinitions.length})</div>
+                    {selectedRecord.fieldDefinitions.map((f, i) => (
+                      <div key={i} className="detail-row">
+                        <span className="detail-key">{f.field} [{f.unit}]</span>
+                        <span className="detail-val" style={{ fontSize: 11 }}>{f.validValues}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedRecord.productIds.length > 0 && (
+                  <div className="detail-section">
+                    <div className="detail-section-title">Products Saved from This Document</div>
+                    {selectedRecord.productIds.map(pid => {
+                      const p = db.getProduct(pid)
+                      return p ? (
+                        <div key={pid} className="adv-chip" style={{ margin: "2px 0", display: "block" }}>
+                          {p.catalogNumber} — {p.series} {p.size}
+                        </div>
+                      ) : null
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="kb-placeholder">
+                <div className="empty-icon">◈</div>
+                <div className="empty-label">Select a document to inspect</div>
+                <div className="empty-sub">View extracted grammar rules, field definitions, and linked products</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -149,6 +302,7 @@ function SpecSheetWizard({ onSave, onCancel }: { onSave: () => void; onCancel: (
   const [competitors, setCompetitors]       = useState<CompetitorResult[]>([])
   const [compSearching, setCompSearching]   = useState(false)
   const [compSearchError, setCompSearchError] = useState<string>("")
+  const [learningRecord, setLearningRecord]   = useState<Partial<SpecSheetRecord> | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   // ── Step 1: file pick ──────────────────────────────────────────────────────
@@ -182,17 +336,21 @@ function SpecSheetWizard({ onSave, onCancel }: { onSave: () => void; onCancel: (
     setStep("extracting")
     setError("")
     try {
-      const systemPrompt = `You are a lighting product specification extractor. 
+      // Build context-aware system prompt using everything learned so far
+    const learnedContext = knowledgeStore.buildSystemContext()
+
+    const systemPrompt = learnedContext + `
+You are a lighting product specification extractor.
 You will receive a PDF spec sheet for a commercial LED lighting product.
 Extract ALL of the following fields and return ONLY a valid JSON object — no markdown, no explanation, no backticks.
 
 Required JSON structure (use null for missing fields):
 {
-  "brand": "brand id lowercase no spaces (e.g. acuity, rab, keystone, ge, eaton, cree, lithonia)",
-  "series": "product family/series name (e.g. CPX, T34FA, MMS)",
-  "catalogNumber": "primary orderable catalog number shown on spec sheet",
-  "size": "one of: 1x1, 1x2, 1x4, 2x2, 2x4, 4x6",
+  "brand": "brand id lowercase no spaces (e.g. acuity, rab, keystone, ge, eaton, cree, lithonia, neoray, cooper)",
+  "series": "product family/series name (e.g. CPX, T34FA, MMS, WSL, Omni)",
   "fixtureType": "short fixture type description",
+  "catalogNumber": "primary orderable catalog number shown on spec sheet",
+  "size": "one of: 1x1, 1x2, 1x4, 2x2, 2x4, 4x6, linear-4ft, linear-8ft, downlight, other",
   "lumensMedium": "delivered lumens at medium/default setting as integer",
   "lumensLow": "delivered lumens at low setting or null",
   "lumensHigh": "delivered lumens at high setting or null",
@@ -201,7 +359,7 @@ Required JSON structure (use null for missing fields):
   "wattsHigh": "input watts at high setting or null",
   "efficacy": "lumens per watt at medium setting as integer",
   "cri": "minimum CRI as integer (e.g. 80 or 90)",
-  "cct": ["array", "of", "CCT", "strings", "e.g.", "3500K"],
+  "cct": ["array of CCT strings e.g. 3500K"],
   "cctSelectable": true or false,
   "lumenSelectable": true or false,
   "voltage": "input voltage range (e.g. 120-277V)",
@@ -221,7 +379,26 @@ Required JSON structure (use null for missing fields):
   "weight": "fixture weight in lbs as number",
   "notes": ["array of important notes"],
   "flags": ["array of potential mismatch flags vs standard LED panels"],
-  "advantages": ["array of product advantages"]
+  "advantages": ["array of product advantages"],
+  "catalogGrammar": [
+    {
+      "position": 1,
+      "fieldName": "name of this catalog position",
+      "codes": {"CODE1": "meaning 1", "CODE2": "meaning 2"},
+      "format": "description of format pattern",
+      "required": true,
+      "notes": "any special notes about this position"
+    }
+  ],
+  "fieldDefinitions": [
+    {
+      "field": "field name e.g. Lumen Output",
+      "unit": "unit e.g. lm or lm/ft",
+      "validValues": "range or list of valid values",
+      "notes": "any notes"
+    }
+  ],
+  "rawSummary": "2-3 sentence plain-English summary of this product family"
 }`
 
       const response = await fetch("/api/messages", {
@@ -253,6 +430,42 @@ Required JSON structure (use null for missing fields):
       const parsed = JSON.parse(clean)
 
       // Map flat extracted fields to Product shape
+      // Store grammar and field definitions for future AI calls
+      const grammarRules: CatalogGrammarRule[] = Array.isArray(parsed.catalogGrammar)
+        ? parsed.catalogGrammar.map((g: any, idx: number) => ({
+            position:   g.position || idx + 1,
+            fieldName:  g.fieldName || "",
+            codes:      g.codes || {},
+            format:     g.format || "",
+            required:   g.required !== false,
+            notes:      g.notes || "",
+          }))
+        : []
+
+      const fieldDefs: FieldDefinition[] = Array.isArray(parsed.fieldDefinitions)
+        ? parsed.fieldDefinitions.map((f: any) => ({
+            field:       f.field || "",
+            unit:        f.unit || "",
+            validValues: f.validValues || "",
+            notes:       f.notes || "",
+          }))
+        : []
+
+      // Store the partial learning record — will be completed when product is saved
+      setLearningRecord({
+        id:               "learn-" + Date.now(),
+        addedAt:          new Date().toISOString(),
+        fileName:         fileName || "uploaded-spec",
+        brand:            (parsed.brand || "").toLowerCase(),
+        series:           parsed.series || "",
+        fixtureType:      parsed.fixtureType || "LED Fixture",
+        rawExtractedText: parsed.rawSummary || "",
+        catalogGrammar:   grammarRules,
+        fieldDefinitions: fieldDefs,
+        productIds:       [],
+        notes:            "Auto-extracted from spec sheet upload",
+      })
+
       const product: Partial<Product> = {
         brand:          (parsed.brand || "").toLowerCase().replace(/\s+/g, "-"),
         series:         parsed.series || "",
@@ -323,6 +536,30 @@ Required JSON structure (use null for missing fields):
         parent: editForm.brand,
         color: "#888",
         products: []
+      })
+    }
+
+    // Commit the learning record to the knowledge store
+    if (learningRecord) {
+      const finalRecord: SpecSheetRecord = {
+        ...learningRecord as SpecSheetRecord,
+        productIds: [id],
+      }
+      knowledgeStore.addRecord(finalRecord)
+    } else {
+      // Manual entry — create a minimal learning record
+      knowledgeStore.addRecord({
+        id:               "learn-manual-" + Date.now(),
+        addedAt:          new Date().toISOString(),
+        fileName:         "manual-entry",
+        brand:            editForm.brand || "",
+        series:           editForm.series || "",
+        fixtureType:      editForm.fixtureType || "LED Fixture",
+        rawExtractedText: "",
+        catalogGrammar:   [],
+        fieldDefinitions: [],
+        productIds:       [id],
+        notes:            "Manually entered via Knowledge Base form",
       })
     }
 
